@@ -31,18 +31,11 @@ def calculate_slot_cost(slot: Slot) -> float:
     cost = (dist_aisle * WEIGHT_AISLE) + (dist_col * WEIGHT_COLUMN) + (dist_level * WEIGHT_LEVEL)
     return cost
 
-def suggest_best_slot(db: Session, is_imo: bool) -> Slot:
+def suggest_best_slot(db: Session, is_imo: bool, max_allowed_level: int) -> Slot:
     """
     Implementa o motor de regras/heurística de IA para sugerir o melhor slot.
     """
-    # 1. Obter a taxa de ocupação atual
-    occupancy_rate = get_warehouse_occupancy(db)
-    
-    # 2. Definir o limite de altura com base na ocupação
-    # Se ocupação < 40%, só usar alturas mais baixas (1, 2, 3, no máximo 4 de 7 disponíveis)
-    max_allowed_level = 4 if occupancy_rate < 40.0 else 7
-    
-    # 3. Filtrar slots vazios compatíveis
+    # 1. Filtrar slots vazios compatíveis
     query = db.query(Slot).filter(Slot.is_occupied == False)
     
     # Restrição de altura
@@ -65,7 +58,7 @@ def suggest_best_slot(db: Session, is_imo: bool) -> Slot:
             )
         else:
             raise ValueError(
-                f"Nenhum espaço disponível para carga comum nos níveis permitidos. Limite de altura ativo: Nível {max_allowed_level} (Ocupação: {occupancy_rate:.1f}%)."
+                f"Nenhum espaço disponível para carga comum nos níveis permitidos. Limite de altura ativo: Nível {max_allowed_level}."
             )
         
     # 4. Avaliar o custo de deslocamento para cada candidato e retornar o menor

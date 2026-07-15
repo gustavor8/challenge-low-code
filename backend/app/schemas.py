@@ -57,3 +57,6 @@ class OccupancyStats(BaseModel):
     imo_slots: int
     occupied_imo_slots: int
     limit_height: int
+
+class SettingsRequest(BaseModel):
+    height_rule: str

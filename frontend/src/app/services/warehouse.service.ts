@@ -79,4 +79,12 @@ export class WarehouseService {
   resetWarehouse(): Observable<{ message: string }> {
     return this.http.post<{ message: string }>(`${this.apiUrl}/warehouse/reset`, {});
   }
+
+  getSettings(): Observable<{ height_rule: string }> {
+    return this.http.get<{ height_rule: string }>(`${this.apiUrl}/warehouse/settings`);
+  }
+
+  updateSettings(heightRule: string): Observable<{ height_rule: string }> {
+    return this.http.post<{ height_rule: string }>(`${this.apiUrl}/warehouse/settings`, { height_rule: heightRule });
+  }
 }

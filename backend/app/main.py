@@ -14,12 +14,16 @@ from .schemas import (
     SuggestRequest,
     SuggestResponse,
     ConfirmRequest,
-    OccupancyStats
+    OccupancyStats,
+    SettingsRequest
 )
 from .rules import suggest_best_slot, get_warehouse_occupancy
 
 # Criar tabelas no banco de dados se não existirem
 Base.metadata.create_all(bind=engine)
+
+# Configuração global da regra de altura ativa
+ACTIVE_HEIGHT_RULE = "auto"  # Pode ser "auto", "level4" ou "level7"
 
 app = FastAPI(title="Argos Armazém API", version="1.0.0")
 
@@ -82,6 +86,22 @@ def get_warehouse_state(db: Session = Depends(get_db)):
     return slots
 
 
+@app.get("/api/warehouse/settings")
+def get_warehouse_settings():
+    """Retorna a regra de altura ativa atual"""
+    return {"height_rule": ACTIVE_HEIGHT_RULE}
+
+
+@app.post("/api/warehouse/settings")
+def update_warehouse_settings(req: SettingsRequest):
+    """Atualiza a regra de altura ativa"""
+    global ACTIVE_HEIGHT_RULE
+    if req.height_rule not in ["auto", "level4", "level7"]:
+        raise HTTPException(status_code=400, detail="Regra de altura inválida. Use 'auto', 'level4' ou 'level7'.")
+    ACTIVE_HEIGHT_RULE = req.height_rule
+    return {"height_rule": ACTIVE_HEIGHT_RULE}
+
+
 @app.get("/api/warehouse/occupancy", response_model=OccupancyStats)
 def get_occupancy_stats(db: Session = Depends(get_db)):
     """Retorna estatísticas detalhadas de ocupação e limites atuais"""
@@ -92,7 +112,12 @@ def get_occupancy_stats(db: Session = Depends(get_db)):
     imo_total = db.query(Slot).filter(Slot.is_imo_restricted == True).count()
     imo_occupied = db.query(Slot).filter(Slot.is_imo_restricted == True, Slot.is_occupied == True).count()
     
-    limit_height = 4 if occupancy_rate < 40.0 else 7
+    if ACTIVE_HEIGHT_RULE == "level4":
+        limit_height = 4
+    elif ACTIVE_HEIGHT_RULE == "level7":
+        limit_height = 7
+    else:  # "auto"
+        limit_height = 4 if occupancy_rate < 40.0 else 7
     
     return OccupancyStats(
         total_slots=total,
@@ -108,7 +133,18 @@ def get_occupancy_stats(db: Session = Depends(get_db)):
 def get_allocation_suggestion(req: SuggestRequest, db: Session = Depends(get_db)):
     """Recebe dados da carga e sugere a posição ideal de alocação"""
     try:
-        best_slot = suggest_best_slot(db, req.is_imo)
+        total = db.query(Slot).count()
+        occupied = db.query(Slot).filter(Slot.is_occupied == True).count()
+        occupancy_rate = (occupied / total * 100.0) if total > 0 else 0.0
+        
+        if ACTIVE_HEIGHT_RULE == "level4":
+            max_allowed_level = 4
+        elif ACTIVE_HEIGHT_RULE == "level7":
+            max_allowed_level = 7
+        else:  # "auto"
+            max_allowed_level = 4 if occupancy_rate < 40.0 else 7
+
+        best_slot = suggest_best_slot(db, req.is_imo, max_allowed_level)
         return SuggestResponse(
             slot_id=best_slot.id,
             aisle=best_slot.aisle,
