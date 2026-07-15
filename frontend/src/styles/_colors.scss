@@ -1,0 +1,50 @@
+:root {
+  /* Color Palette - Wilson Sons theme (Navy & Accent yellow/blue) */
+  --color-primary-900: #0a1128;
+  --color-primary-800: #001f54;
+  --color-primary-700: #003049;
+  --color-primary-600: #1a3a6c;
+  --color-primary-500: #2a52be;
+  
+  --color-accent-gold: #f77f00;
+  --color-accent-yellow: #fcbf49;
+  --color-accent-blue: #00b4d8;
+  --color-accent-green: #2ec4b6;
+  
+  /* Status Colors */
+  --color-success: #2ec4b6;
+  --color-error: #e63946;
+  --color-warning: #fcbf49;
+  
+  /* Neutral Dark Mode Colors */
+  --app-bg-dark: #060913;
+  --app-bg-surface: #0e1626;
+  --app-bg-surface-glow: #131e33;
+  --app-border: #1e2d4a;
+  --app-border-glow: #385b9f;
+  --app-text-primary: #f8f9fa;
+  --app-text-secondary: #a0aec0;
+  --app-text-muted: #718096;
+  
+  /* Glassmorphism Variables */
+  --app-glass-bg: rgba(14, 22, 38, 0.7);
+  --app-glass-border: rgba(255, 255, 255, 0.08);
+  --app-glass-shadow: rgba(0, 0, 0, 0.3);
+  --app-glass-blur: blur(12px);
+  
+  /* Dynamic Grid Color Code Variables */
+  --slot-empty-bg: rgba(46, 196, 182, 0.05);
+  --slot-empty-border: rgba(46, 196, 182, 0.25);
+  
+  --slot-occupied-bg: rgba(26, 58, 108, 0.4);
+  --slot-occupied-border: rgba(42, 82, 190, 0.6);
+  
+  --slot-imo-restricted-bg: rgba(252, 191, 73, 0.05);
+  --slot-imo-restricted-border: rgba(252, 191, 73, 0.4);
+  
+  --slot-imo-occupied-bg: rgba(230, 57, 70, 0.2);
+  --slot-imo-occupied-border: rgba(230, 57, 70, 0.7);
+  
+  --slot-suggested-glow: #00f5d4;
+  --slot-selected-glow: #ffffff;
+}

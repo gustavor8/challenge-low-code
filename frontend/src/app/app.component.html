@@ -1,0 +1,317 @@
+<mat-sidenav-container class="sidenav-container">
+  
+  <!-- SIDENAV PARA OPERAÇÕES E DETALHES -->
+  <mat-sidenav #sidenav mode="side" opened position="end" class="control-panel">
+    <div class="panel-header">
+      <h2>Painel de Controle</h2>
+      <mat-divider></mat-divider>
+    </div>
+
+    <!-- FORMULÁRIO DE ENTRADA DE CARGA -->
+    <mat-card class="form-card mat-elevation-z4">
+      <mat-card-header>
+        <mat-card-title>Nova Entrada de Carga</mat-card-title>
+        <mat-card-subtitle>Insira os dados para alocação inteligente</mat-card-subtitle>
+      </mat-card-header>
+      
+      <mat-card-content>
+        <form [formGroup]="form" class="form-content">
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>SKU / Código da Carga</mat-label>
+            <input matInput placeholder="Ex: SKU99823" formControlName="sku">
+            <mat-icon matSuffix>qr_code</mat-icon>
+            @if (form.controls.sku.touched && form.controls.sku.invalid) {
+              <mat-error>{{ skuError }}</mat-error>
+            }
+          </mat-form-field>
+
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>Nome / Mercadoria (Opcional)</mat-label>
+            <input matInput placeholder="Ex: Peças Industriais" formControlName="name">
+            <mat-icon matSuffix>inventory_2</mat-icon>
+          </mat-form-field>
+
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>Peso (kg)</mat-label>
+            <input matInput type="number" placeholder="Ex: 1250" formControlName="weight">
+            <span matSuffix>kg</span>
+            @if (form.controls.weight.touched && form.controls.weight.invalid) {
+              <mat-error>{{ weightError }}</mat-error>
+            }
+          </mat-form-field>
+
+          <div class="toggle-container">
+            <mat-slide-toggle color="warn" formControlName="isImo">
+              Carga Perigosa (Regulação IMO)
+            </mat-slide-toggle>
+          </div>
+        </form>
+      </mat-card-content>
+
+      <mat-card-actions class="card-actions">
+        @if (!suggestedSlot()) {
+          <button mat-flat-button color="primary" class="full-width" (click)="requestSuggestion()">
+            <mat-icon>psychology</mat-icon>
+            Calcular Alocação Inteligente
+          </button>
+        }
+      </mat-card-actions>
+    </mat-card>
+
+    <!-- SEÇÃO DE RECOMENDAÇÃO ATIVA -->
+    @if (suggestedSlot(); as sugSlot) {
+      <div class="suggestion-alert-box animate-pulse">
+        <div class="alert-header">
+          <mat-icon color="accent">tips_and_updates</mat-icon>
+          <h3>Posição Recomendada pela IA</h3>
+        </div>
+        <p class="suggestion-msg">{{ suggestedMessage() }}</p>
+        
+        <div class="coordinates-badge">
+          <div class="coord-item">
+            <span class="label">Corredor</span>
+            <span class="value">{{ sugSlot.aisle }}</span>
+          </div>
+          <div class="coord-item">
+            <span class="label">Coluna</span>
+            <span class="value">{{ sugSlot.column }}</span>
+          </div>
+          <div class="coord-item">
+            <span class="label">Nível</span>
+            <span class="value">{{ sugSlot.level }}</span>
+          </div>
+        </div>
+
+        <div class="alert-actions">
+          <button mat-flat-button color="accent" class="confirm-btn" (click)="confirmAllocation()">
+            <mat-icon>check_circle</mat-icon> Confirmar Armazenamento
+          </button>
+          <button mat-button color="warn" class="cancel-btn" (click)="cancelSuggestion()">
+            Cancelar
+          </button>
+        </div>
+      </div>
+    }
+
+    <!-- DETALHES DA POSIÇÃO SELECIONADA -->
+    @if (selectedSlot(); as selSlot) {
+      <mat-card class="details-card mat-elevation-z4">
+        <mat-card-header>
+          <mat-card-title>Posição {{ selSlot.aisle }}.{{ selSlot.column }}.{{ selSlot.level }}</mat-card-title>
+          <mat-card-subtitle>
+            Status: 
+            <span [class.text-occupied]="selSlot.is_occupied" [class.text-free]="!selSlot.is_occupied">
+              {{ selSlot.is_occupied ? 'Ocupado' : 'Vazio' }}
+            </span>
+          </mat-card-subtitle>
+        </mat-card-header>
+
+        <mat-card-content class="details-content">
+          @if (selSlot.is_imo_restricted) {
+            <div class="imo-badge">
+              <mat-icon>warning</mat-icon> Área Exclusiva para Cargas IMO
+            </div>
+          }
+
+          @if (selSlot.is_occupied && selSlot.load) {
+            <div class="load-info">
+              <div class="info-row">
+                <span class="info-label">SKU:</span>
+                <span class="info-value font-mono">{{ selSlot.load.sku }}</span>
+              </div>
+              <div class="info-row">
+                <span class="info-label">Mercadoria:</span>
+                <span class="info-value">{{ selSlot.load.name }}</span>
+              </div>
+              <div class="info-row">
+                <span class="info-label">Peso:</span>
+                <span class="info-value">{{ selSlot.load.weight }} kg</span>
+              </div>
+              <div class="info-row">
+                <span class="info-label">Classe IMO:</span>
+                <span class="info-value">{{ selSlot.load.is_imo ? 'Sim (Perigosa)' : 'Não' }}</span>
+              </div>
+              <div class="info-row">
+                <span class="info-label">Armazenado em:</span>
+                <span class="info-value date-value">{{ selSlot.load.allocated_at | date:'dd/MM/yyyy HH:mm' }}</span>
+              </div>
+            </div>
+          } @else {
+            <div class="empty-state-info">
+              <mat-icon>info</mat-icon>
+              <p>Esta posição está disponível no momento.</p>
+            </div>
+          }
+        </mat-card-content>
+
+        <mat-card-actions class="card-actions">
+          @if (selSlot.is_occupied) {
+            <button mat-flat-button color="warn" class="full-width" (click)="unloadSlot(selSlot)">
+              <mat-icon>unarchive</mat-icon> Retirar Carga (Liberar Vaga)
+            </button>
+          }
+        </mat-card-actions>
+      </mat-card>
+    }
+
+  </mat-sidenav>
+
+  <!-- CONTEÚDO PRINCIPAL (DASHBOARD) -->
+  <mat-sidenav-content class="main-content">
+    
+    <mat-toolbar color="primary" class="top-nav mat-elevation-z6">
+      <div class="brand">
+        <mat-icon class="logo-icon">rocket_launch</mat-icon>
+        <span>ARGOS &mdash; Gêmeo Digital Wilson Sons</span>
+      </div>
+      <span class="spacer"></span>
+      <button mat-stroked-button color="warn" class="reset-btn" (click)="resetWarehouse()">
+        <mat-icon>restart_alt</mat-icon> Reiniciar Armazém
+      </button>
+    </mat-toolbar>
+
+    <!-- LOADING PROGRESS BAR -->
+    @if (isLoading()) {
+      <mat-progress-bar mode="indeterminate" color="accent" class="loader"></mat-progress-bar>
+    }
+
+    <div class="dashboard-body">
+      
+      <!-- KPI GRID -->
+      <div class="kpi-container">
+        @if (stats(); as st) {
+          <!-- Ocupação Geral -->
+          <mat-card class="kpi-card mat-elevation-z3">
+            <mat-card-content>
+              <div class="kpi-header">
+                <span class="kpi-title">Taxa de Ocupação</span>
+                <mat-icon color="primary">pie_chart</mat-icon>
+              </div>
+              <div class="kpi-value">{{ st.occupancy_rate }}%</div>
+              <mat-progress-bar mode="determinate" [value]="st.occupancy_rate" class="kpi-progress"></mat-progress-bar>
+              
+              <div class="height-indicator" [class.danger]="st.occupancy_rate >= 40.0">
+                <mat-icon>{{ st.occupancy_rate < 40.0 ? 'info' : 'warning' }}</mat-icon>
+                <span>
+                  {{ st.occupancy_rate < 40.0 ? 'Regra ativa: Altura limitada até Nível 4' : 'Ocupação >= 40%: Altura liberada (Nível 7)' }}
+                </span>
+              </div>
+            </mat-card-content>
+          </mat-card>
+
+          <!-- Capacidade -->
+          <mat-card class="kpi-card mat-elevation-z3">
+            <mat-card-content>
+              <div class="kpi-header">
+                <span class="kpi-title">Posições Ocupadas</span>
+                <mat-icon color="accent">grid_view</mat-icon>
+              </div>
+              <div class="kpi-value">{{ st.occupied_slots }} <span class="sub">/ {{ st.total_slots }}</span></div>
+              <div class="kpi-footer">
+                <span>{{ st.total_slots - st.occupied_slots }} posições vagas disponíveis</span>
+              </div>
+            </mat-card-content>
+          </mat-card>
+
+          <!-- Cargas IMO -->
+          <mat-card class="kpi-card mat-elevation-z3">
+            <mat-card-content>
+              <div class="kpi-header">
+                <span class="kpi-title">Ocupação Área IMO</span>
+                <mat-icon color="warn">report_problem</mat-icon>
+              </div>
+              <div class="kpi-value">{{ st.occupied_imo_slots }} <span class="sub">/ {{ st.imo_slots }}</span></div>
+              <mat-progress-bar mode="determinate" color="warn" [value]="((st.occupied_imo_slots) / (st.imo_slots || 1)) * 100" class="kpi-progress"></mat-progress-bar>
+              <div class="kpi-footer">
+                <span>Área restrita de segurança (Cargas IMO)</span>
+              </div>
+            </mat-card-content>
+          </mat-card>
+        }
+      </div>
+
+      <!-- VISUALIZADOR 3D / 2D DO GÊMEO DIGITAL -->
+      <div class="twin-container mat-elevation-z4">
+        <div class="twin-header">
+          <h3>Visualização em Tempo Real (Digital Twin)</h3>
+          
+          <div class="legend-bar">
+            <span class="legend-item"><span class="legend-color color-empty"></span> Livre</span>
+            <span class="legend-item"><span class="legend-color color-occupied"></span> Ocupado</span>
+            <span class="legend-item"><span class="legend-color color-imo-only"></span> IMO (Reservado)</span>
+            <span class="legend-item"><span class="legend-color color-imo-occupied"></span> IMO Ocupado</span>
+            <span class="legend-item"><span class="legend-color color-recommended"></span> Recomendado</span>
+          </div>
+        </div>
+
+        <div class="aisles-wrapper">
+          
+          @for (aisle of aisles; track aisle) {
+            <!-- CORREDOR -->
+            <div class="aisle-section">
+              <div class="aisle-title">
+                <mat-icon>format_align_justify</mat-icon> CORREDOR 0{{ aisle }}
+              </div>
+              
+              <div class="rack-grid">
+                <!-- Grid Header (Colunas) -->
+                <div class="grid-header-cols">
+                  <div class="y-axis-label">Nível</div>
+                  @for (col of columns; track col) {
+                    <div class="col-header-label">Col {{ col }}</div>
+                  }
+                </div>
+
+                <!-- Níveis de Carga (Linhas) -->
+                @for (lvl of levels; track lvl) {
+                  <div class="grid-row">
+                    <div class="level-header-label">Nível {{ lvl }}</div>
+                    
+                    <!-- Slots das Colunas -->
+                    @for (col of columns; track col) {
+                      <div class="slot-wrapper">
+                        @if (getSlot(aisle, col, lvl); as s) {
+                          <div 
+                               [matTooltip]="s.is_occupied ? 'SKU: ' + s.load?.sku + ' - ' + s.load?.weight + 'kg' : (s.is_imo_restricted ? 'IMO Reservado' : 'Posição Livre')"
+                               [class.slot-occupied]="s.is_occupied && !s.is_imo_restricted"
+                               [class.slot-empty]="!s.is_occupied && !s.is_imo_restricted"
+                               [class.slot-imo-restricted]="!s.is_occupied && s.is_imo_restricted"
+                               [class.slot-imo-occupied]="s.is_occupied && s.is_imo_restricted"
+                               [class.slot-suggested]="suggestedSlot()?.id === s.id"
+                               [class.slot-selected]="selectedSlot()?.id === s.id"
+                               [class.height-blocked]="stats() && stats()!.occupancy_rate < 40.0 && s.level > 4"
+                               class="slot-cell"
+                               (click)="selectSlot(s)">
+                            
+                            <div class="slot-indicator"></div>
+                            <span class="slot-text">{{ col }}-{{ lvl }}</span>
+                            
+                            <!-- Ícones de aviso / estado -->
+                            @if (s.is_imo_restricted) {
+                              <mat-icon class="imo-icon">warning</mat-icon>
+                            }
+                            @if (s.is_occupied) {
+                              <mat-icon class="occupied-icon">inventory</mat-icon>
+                            }
+                          </div>
+                        }
+                      </div>
+                    }
+                  </div>
+                }
+              </div>
+            </div>
+
+            @if (aisle === 1) {
+              <!-- ESPAÇO ENTRE CORREDORES -->
+              <div class="aisle-spacer">
+                <div class="spacer-text">CORREDOR DE DESLOCAMENTO DA EMPILHADEIRA</div>
+              </div>
+            }
+          }
+
+        </div>
+      </div>
+    </div>
+  </mat-sidenav-content>
+</mat-sidenav-container>
