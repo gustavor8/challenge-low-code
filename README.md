@@ -53,7 +53,7 @@ graph TD
     G --> I[Calcular Custo de Deslocamento para Posições Candidatas]
     H --> I
     
-    I --> J[Custo = Wa * |aisle-1| + Wc * |col-1| + Wl * |level-1|]
+    I --> J["Custo = Wa * |aisle-1| + Wc * |col-1| + Wl * |level-1|"]
     J --> K[Selecionar Slot com MENOR Custo]
     K --> L[Retornar Sugestão de Slot]
 ```
