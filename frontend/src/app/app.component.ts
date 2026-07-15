@@ -65,6 +65,7 @@ export class AppComponent implements OnInit {
   readonly slots = signal<Slot[]>([]);
   readonly stats = signal<OccupancyStats | null>(null);
   readonly isLoading = signal<boolean>(false);
+  readonly activeHeightRule = signal<string>('auto');
   
   // Selection and Recommendations Signals
   readonly selectedSlot = signal<Slot | null>(null);
@@ -128,6 +129,14 @@ export class AppComponent implements OnInit {
       .subscribe({
         next: (stats) => {
           this.stats.set(stats);
+        }
+      });
+
+    this.warehouseService.getSettings()
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (settings) => {
+          this.activeHeightRule.set(settings.height_rule);
         }
       });
   }
@@ -269,6 +278,25 @@ export class AppComponent implements OnInit {
     this.form.enable();
     this.suggestedSlot.set(null);
     this.suggestedMessage.set(null);
+  }
+
+  onHeightRuleChange(value: string): void {
+    this.isLoading.set(true);
+    this.warehouseService.updateSettings(value)
+      .pipe(
+        takeUntilDestroyed(this.destroyRef),
+        finalize(() => this.isLoading.set(false))
+      )
+      .subscribe({
+        next: (settings) => {
+          this.activeHeightRule.set(settings.height_rule);
+          this.showToast('Regra de altura atualizada!', 'fechar');
+          this.loadState();
+        },
+        error: () => {
+          this.showToast('Erro ao atualizar regra de altura.', 'fechar');
+        }
+      });
   }
 
   private showToast(message: string, action: string): void {

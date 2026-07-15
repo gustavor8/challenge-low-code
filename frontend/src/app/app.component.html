@@ -165,6 +165,17 @@
         <span>ARGOS &mdash; Gêmeo Digital Wilson Sons</span>
       </div>
       <span class="spacer"></span>
+
+      <!-- CONTROLE DE REGRA DE ALTURA -->
+      <mat-form-field appearance="outline" class="height-rule-select" subscriptSizing="dynamic">
+        <mat-label>Regra de Altura</mat-label>
+        <mat-select [value]="activeHeightRule()" (selectionChange)="onHeightRuleChange($event.value)">
+          <mat-option value="auto">Automática (Ocupação < 40% ➔ Nível 4)</mat-option>
+          <mat-option value="level4">Forçar Nível 4 Máximo</mat-option>
+          <mat-option value="level7">Forçar Nível 7 Máximo (Sem limite)</mat-option>
+        </mat-select>
+      </mat-form-field>
+
       <button mat-stroked-button color="warn" class="reset-btn" (click)="resetWarehouse()">
         <mat-icon>restart_alt</mat-icon> Reiniciar Armazém
       </button>
@@ -190,10 +201,11 @@
               <div class="kpi-value">{{ st.occupancy_rate }}%</div>
               <mat-progress-bar mode="determinate" [value]="st.occupancy_rate" class="kpi-progress"></mat-progress-bar>
               
-              <div class="height-indicator" [class.danger]="st.occupancy_rate >= 40.0">
-                <mat-icon>{{ st.occupancy_rate < 40.0 ? 'info' : 'warning' }}</mat-icon>
+              <div class="height-indicator" [class.danger]="st.limit_height === 7">
+                <mat-icon>{{ st.limit_height === 4 ? 'info' : 'warning' }}</mat-icon>
                 <span>
-                  {{ st.occupancy_rate < 40.0 ? 'Regra ativa: Altura limitada até Nível 4' : 'Ocupação >= 40%: Altura liberada (Nível 7)' }}
+                  Regra ativa: Altura {{ st.limit_height === 4 ? 'limitada até Nível 4' : 'liberada até Nível 7' }} 
+                  ({{ activeHeightRule() === 'auto' ? 'Automático' : 'Forçado' }})
                 </span>
               </div>
             </mat-card-content>
@@ -279,7 +291,7 @@
                                [class.slot-imo-occupied]="s.is_occupied && s.is_imo_restricted"
                                [class.slot-suggested]="suggestedSlot()?.id === s.id"
                                [class.slot-selected]="selectedSlot()?.id === s.id"
-                               [class.height-blocked]="stats() && stats()!.occupancy_rate < 40.0 && s.level > 4"
+                               [class.height-blocked]="stats() && s.level > stats()!.limit_height"
                                class="slot-cell"
                                (click)="selectSlot(s)">
                             
